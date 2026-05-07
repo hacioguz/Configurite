@@ -26,10 +26,23 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Setup Pages
-        # NOTE: Pages must be enabled manually once in repo Settings → Pages
-        # → Source: "GitHub Actions". The default GITHUB_TOKEN can't create the
-        # site via API even with pages:write, so 'enablement: true' is a no-op
-        # in practice; we omit it to avoid the confusing error.
+        # =====================================================================
+        # ONE-TIME REPO SETUP REQUIRED before this workflow can succeed:
+        #
+        #   1. Settings → Pages → Source: "GitHub Actions"  (UI step)
+        #   2. RUN ONCE from your machine with gh CLI auth:
+        #        gh api repos/<owner>/<repo>/pages -X POST -F build_type=workflow
+        #
+        # Step 1 alone does NOT actually instantiate the Pages site server-side
+        # (you can verify: GET /repos/<owner>/<repo>/pages returns 404). The
+        # POST in step 2 creates the Pages object. Both steps must be done.
+        #
+        # 'enablement: true' on configure-pages would automate step 2, but the
+        # default GITHUB_TOKEN lacks the repo admin permissions needed for
+        # POST /pages — it returns "Resource not accessible by integration".
+        # We removed the flag to avoid that misleading error; one-time manual
+        # setup is the supported pattern in GitHub's own examples.
+        # =====================================================================
         uses: actions/configure-pages@v6
 
       - name: Setup .NET

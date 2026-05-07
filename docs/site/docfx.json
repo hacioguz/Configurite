@@ -63,7 +63,7 @@
         "branch": "main"
       }
     },
-    "template": ["default", "modern"],
+    "template": ["default", "modern", "_template"],
     "postProcessors": [],
     "keepFileLink": false,
     "disableGitFeatures": false

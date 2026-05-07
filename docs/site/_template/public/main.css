@@ -1,0 +1,24 @@
+/*
+ * Configurite — DocFX site overrides on top of the 'modern' template.
+ * Loaded automatically because '_template' is listed in docfx.json's
+ * 'template' array (after 'default' and 'modern' so we override).
+ */
+
+/* Constrain the navbar logo. The modern template loads the raw image
+ * with no max-height, which renders our 256×256 PNG at full size. We
+ * cap it to a sane navbar height so the brand mark sits inline next
+ * to the wordmark instead of dwarfing it. */
+.navbar-brand img,
+header img,
+#logo {
+  max-height: 32px;
+  width: auto;
+  height: auto;
+}
+
+/* Slightly tighter navbar padding so the constrained logo lines up
+ * with the link text. */
+.navbar-brand {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
