@@ -1,0 +1,6 @@
+@Configurite.Sample.WebApi_HostAddress = http://localhost:5050
+
+GET {{Configurite.Sample.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

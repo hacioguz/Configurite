@@ -1,0 +1,209 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'      # synchronous release: v8.5.0 -> minor=5 patch=0, packs 8.5.0+9.5.0+10.5.0
+      - 'v*-net8'     # net8-only hotfix:  v8.4.1-net8
+      - 'v*-net9'
+      - 'v*-net10'
+
+env:
+  DOTNET_NOLOGO: true
+
+jobs:
+  release:
+    name: pack + publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write     # for creating GitHub Release
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Parse tag
+        id: parse
+        run: |
+          TAG="${GITHUB_REF##refs/tags/}"
+          # Strip optional -netN suffix.
+          BASE="${TAG%%-net*}"
+          SUFFIX="${TAG#${BASE}}"
+
+          if [[ ! "$BASE" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Tag $TAG does not match v<major>.<minor>.<patch> [optional -net8/-net9/-net10]" >&2
+            exit 1
+          fi
+          echo "minor=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+          echo "patch=${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+          case "$SUFFIX" in
+            -net8)  echo "line=net8"  >> "$GITHUB_OUTPUT" ;;
+            -net9)  echo "line=net9"  >> "$GITHUB_OUTPUT" ;;
+            -net10) echo "line=net10" >> "$GITHUB_OUTPUT" ;;
+            "")     echo "line=all"   >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unknown suffix '$SUFFIX'" >&2
+              exit 1 ;;
+          esac
+          echo "Detected: line=$LINE minor=${BASH_REMATCH[2]} patch=${BASH_REMATCH[3]}"
+
+      - name: Run tests (sanity check before pushing to nuget.org)
+        run: |
+          dotnet restore Configurite.slnx
+          for tfm in net8.0 net9.0 net10.0; do
+            dotnet test tests/Configurite.Tests/Configurite.Tests.csproj \
+              --configuration Release --framework "$tfm"
+          done
+
+      - name: Pack
+        run: |
+          chmod +x scripts/pack-all.sh
+          scripts/pack-all.sh \
+            --line ${{ steps.parse.outputs.line }} \
+            --minor ${{ steps.parse.outputs.minor }} \
+            --patch ${{ steps.parse.outputs.patch }}
+          echo ""
+          echo "==> Produced packages:"
+          ls -lh out/*.nupkg
+
+      - name: Push to nuget.org
+        # NOTE: We can't use 'if: env.NUGET_API_KEY != ...' because step-level
+        # env is only populated DURING step execution, not at if-evaluation
+        # time. We check the env var with bash inside run: instead.
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::warning::NUGET_API_KEY secret is not set — skipping nuget.org push."
+            echo "::warning::Add it under Settings → Secrets and variables → Actions to enable publishing."
+            exit 0
+          fi
+
+          # Per-package error handling: a single transient failure must not
+          # block the rest. We collect failures and surface them at the end
+          # so the workflow fails visibly instead of silently succeeding.
+          # Paket başına hata yönetimi: bir geçici hata diğerlerini bloklamamalı.
+          # Hatalar toplanır, en sonda gösterilir; sessiz başarı yerine workflow patlar.
+          shopt -s nullglob
+          set +e
+          fails=()
+          total=$(ls out/*.nupkg | wc -l | tr -d ' ')
+          echo "==> Pushing $total packages to nuget.org (timeout 600s, skip-duplicate)..."
+
+          for pkg in out/*.nupkg; do
+            echo ""
+            echo "  ▸ $(basename "$pkg")"
+            dotnet nuget push "$pkg" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate \
+              --timeout 600
+            if [ $? -ne 0 ]; then
+              fails+=("$(basename "$pkg")")
+            fi
+          done
+
+          if [ ${#fails[@]} -gt 0 ]; then
+            echo ""
+            echo "::error::Failed to push ${#fails[@]} package(s):"
+            for f in "${fails[@]}"; do
+              echo "::error::  - $f"
+            done
+            exit 1
+          fi
+          echo ""
+          echo "==> All $total packages pushed (or already existed → skip-duplicate)."
+
+      - name: Build release notes
+        id: notes
+        run: |
+          MINOR="${{ steps.parse.outputs.minor }}"
+          PATCH="${{ steps.parse.outputs.patch }}"
+          LINE="${{ steps.parse.outputs.line }}"
+          TAG="${{ github.ref_name }}"
+
+          # Look for a hand-written release-notes file in this priority order:
+          #   1. docs/release-notes/<tag>.md          e.g. v8.0.1.md
+          #   2. docs/release-notes/v<minor>.<patch>.md   e.g. v0.1.md   (shared template for sync releases)
+          #   3. fallback: auto-generated table+install snippet
+          # Elle yazılmış release-notes dosyasını şu öncelikle ara:
+          #   1. docs/release-notes/<tag>.md            (örn. v8.0.1.md)
+          #   2. docs/release-notes/v<minor>.<patch>.md (örn. v0.1.md)  — sync release'ler için ortak şablon
+          #   3. fallback: oto-üretilen tablo + install snippet
+
+          NOTES=""
+          if [ -f "docs/release-notes/${TAG}.md" ]; then
+            NOTES="docs/release-notes/${TAG}.md"
+          elif [ -f "docs/release-notes/v${MINOR}.${PATCH}.md" ]; then
+            NOTES="docs/release-notes/v${MINOR}.${PATCH}.md"
+          fi
+
+          if [ -n "$NOTES" ]; then
+            echo "==> Using hand-written notes: $NOTES"
+            cp "$NOTES" release-notes.md
+          else
+            echo "==> Auto-generating notes for $TAG"
+            {
+              echo "Automated release from tag \`$TAG\`."
+              echo ""
+
+              if [ "$LINE" = "all" ]; then
+                echo "## Versions"
+                echo ""
+                echo "Synchronous release across all three TFM lines:"
+                echo "- \`Configurite 8.${MINOR}.${PATCH}\` — \`net8.0\`"
+                echo "- \`Configurite 9.${MINOR}.${PATCH}\` — \`net9.0\`"
+                echo "- \`Configurite 10.${MINOR}.${PATCH}\` — \`net10.0\`"
+              else
+                MAJOR="${LINE#net}"
+                echo "## Version"
+                echo ""
+                echo "TFM-isolated hotfix on the \`net${MAJOR}.0\` line:"
+                echo "- \`Configurite ${MAJOR}.${MINOR}.${PATCH}\`"
+              fi
+
+              echo ""
+              echo "## Install"
+              echo ""
+              echo '```bash'
+              echo "dotnet add package Configurite          --version <line>.${MINOR}.${PATCH}"
+              echo "dotnet add package Configurite.AdminUI  --version <line>.${MINOR}.${PATCH}"
+              echo "dotnet add package Configurite.Postgres --version <line>.${MINOR}.${PATCH}"
+              echo "dotnet tool install -g Configurite.Cli  --version <line>.${MINOR}.${PATCH}"
+              echo '```'
+              echo ""
+              echo "Where \`<line>\` is \`8\`, \`9\`, or \`10\` matching your target framework."
+              echo ""
+              echo "## Links"
+              echo ""
+              echo "- 📦 [nuget.org/packages/Configurite](https://www.nuget.org/packages/Configurite/)"
+              echo "- 📖 [Documentation site](https://hacioguz.github.io/Configurite/)"
+            } > release-notes.md
+          fi
+
+          echo ""
+          echo "==> Effective release notes:"
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: Configurite ${{ github.ref_name }}
+          body_path: release-notes.md
+          # Append GitHub's auto-generated "What's Changed" section
+          # (commits + PRs since the previous tag) to the body above.
+          # Conventional commit prefixes (feat:, fix:, perf:, ...) make
+          # this list readable without manual changelog maintenance.
+          generate_release_notes: true
+          append_body: true
+          files: |
+            out/*.nupkg
+            out/*.snupkg
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

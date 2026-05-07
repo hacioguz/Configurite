@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+    <!-- Common metadata -->
+    <Authors>Configurite Contributors</Authors>
+    <Company>Configurite</Company>
+    <Copyright>Copyright (c) 2026 Configurite Contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/hacioguz/configurite</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hacioguz/configurite.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>configuration;sqlite;encryption;aspnetcore;dotnet;appsettings;configurite</PackageTags>
+  </PropertyGroup>
+</Project>

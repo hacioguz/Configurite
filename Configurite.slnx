@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Configurite/Configurite.csproj" />
+    <Project Path="src/Configurite.Cli/Configurite.Cli.csproj" />
+    <Project Path="src/Configurite.AdminUI/Configurite.AdminUI.csproj" />
+    <Project Path="src/Configurite.Postgres/Configurite.Postgres.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Configurite.Tests/Configurite.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Configurite.Sample.WebApi/Configurite.Sample.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Configurite.Benchmarks/Configurite.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/solution-items/">
+    <File Path="README.md" />
+    <File Path="LICENSE" />
+    <File Path=".gitignore" />
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+</Solution>

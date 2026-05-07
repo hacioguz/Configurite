@@ -1,0 +1,28 @@
+- name: Genel bakış
+  href: README.md
+- name: Başlangıç
+  href: baslangic.md
+- name: Şifreleme modeli
+  href: sifreleme.md
+- name: appsettings.json'dan geçiş
+  href: gecis.md
+- name: Hot reload
+  href: hot-reload.md
+- name: Anahtar rotasyonu
+  href: anahtar-rotasyonu.md
+- name: CLI aracı
+  href: cli.md
+- name: Yönetim paneli
+  href: yonetim-paneli.md
+- name: Performans
+  href: performans.md
+- name: Güvenlik mimarisi
+  href: guvenlik.md
+- name: Gözlemlenebilirlik
+  href: gozlemlenebilirlik.md
+- name: PostgreSQL arka ucu
+  href: postgres-arka-uc.md
+- name: Sürümleme politikası
+  href: surumleme.md
+- name: API referansı
+  href: api-referansi.md

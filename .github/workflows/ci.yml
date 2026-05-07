@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  # ----------------------------------------------------------------
+  # Job 1: matrix test run — every TFM x every supported OS.
+  # 9 jobs total. Each restores once and runs xUnit for one TFM.
+  # ----------------------------------------------------------------
+  test:
+    name: test (${{ matrix.os }} / ${{ matrix.tfm }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        tfm: [net8.0, net9.0, net10.0]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET (8 + 9 + 10)
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore Configurite.slnx
+
+      - name: Build
+        run: dotnet build Configurite.slnx --configuration Release --no-restore
+
+      - name: Test (${{ matrix.tfm }})
+        run: dotnet test tests/Configurite.Tests/Configurite.Tests.csproj
+             --configuration Release --no-build
+             --framework ${{ matrix.tfm }}
+             --logger "trx;LogFileName=test-${{ matrix.tfm }}.trx"
+             --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.tfm }}
+          path: TestResults/*.trx
+          retention-days: 14
+
+  # ----------------------------------------------------------------
+  # Job 2: pack — runs once on Linux. Packs all 9 nupkg + 9 snupkg
+  # for the synchronous release version derived from the tag, or
+  # 0.0.0-dev when running on main without a tag.
+  # ----------------------------------------------------------------
+  pack:
+    name: pack (8.x / 9.x / 10.x)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Resolve version (tag → minor.patch, else 0.0.0-dev)
+        id: ver
+        run: |
+          REF="${GITHUB_REF##*/}"
+          if [[ "$REF" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "minor=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+            echo "patch=${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "minor=0" >> "$GITHUB_OUTPUT"
+            echo "patch=0" >> "$GITHUB_OUTPUT"
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pack all TFM lines
+        run: |
+          chmod +x scripts/pack-all.sh
+          scripts/pack-all.sh --minor ${{ steps.ver.outputs.minor }} --patch ${{ steps.ver.outputs.patch }}
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v6
+        with:
+          name: nuget-packages
+          path: out/*.*nupkg
+          retention-days: 90
+
+  # ----------------------------------------------------------------
+  # Job 3: format check — non-blocking signal that nothing has drifted.
+  # ----------------------------------------------------------------
+  format:
+    name: format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - run: dotnet format Configurite.slnx --verify-no-changes --severity warn
+
+  # ----------------------------------------------------------------
+  # Job 4: vulnerability scan — fails the build on any direct or
+  # transitive package with a known CVE.
+  # ----------------------------------------------------------------
+  security:
+    name: vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore Configurite.slnx
+
+      - name: Scan vulnerable packages
+        run: |
+          out=$(dotnet list Configurite.slnx package --vulnerable --include-transitive 2>&1)
+          echo "$out"
+          if echo "$out" | grep -qiE 'has the following vulnerable packages|>\s+[A-Za-z]'; then
+            # The "> Package …" pattern only appears when something is found.
+            echo "::error::Vulnerable packages detected — see log above."
+            exit 1
+          fi

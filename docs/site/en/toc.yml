@@ -1,0 +1,28 @@
+- name: Overview
+  href: README.md
+- name: Getting started
+  href: getting-started.md
+- name: Encryption model
+  href: encryption.md
+- name: Migrating from appsettings.json
+  href: migration.md
+- name: Hot reload
+  href: hot-reload.md
+- name: Key rotation
+  href: key-rotation.md
+- name: CLI tool
+  href: cli.md
+- name: Admin UI
+  href: admin-ui.md
+- name: Benchmarks
+  href: benchmarks.md
+- name: Security architecture
+  href: security.md
+- name: Observability
+  href: observability.md
+- name: PostgreSQL backend
+  href: postgres-backend.md
+- name: Versioning policy
+  href: versioning.md
+- name: API reference
+  href: api-reference.md

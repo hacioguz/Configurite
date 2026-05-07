@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- NuGet package metadata -->
+    <PackageId>Configurite</PackageId>
+    <!--
+      EN: Default placeholder. Real releases set Version per TFM via scripts/pack-all.sh
+          (e.g. 8.2.0 for net8.0, 9.0.0 for net9.0, 10.0.0 for net10.0). The major component
+          mirrors the target framework so `Configurite Version="8.*"` always means net8.0.
+      TR: Varsayılan yer tutucu. Gerçek yayınlar her TFM için Version'ı scripts/pack-all.sh ile
+          ayarlar (örn. net8.0 için 8.2.0, net9.0 için 9.0.0, net10.0 için 10.0.0). Major
+          numarası hedef framework'ü yansıtır; "Configurite Version='8.*'" daima net8.0 anlamına gelir.
+    -->
+    <Version>0.0.0-dev</Version>
+    <Title>Configurite — Encrypted SQLite configuration provider</Title>
+    <Description>Drop-in replacement for appsettings.json: encrypted SQLite-backed configuration provider for ASP.NET Core / .NET 8+. AES-256-GCM with PBKDF2 key derivation, hot reload, environment overrides, and a one-shot JSON-to-SQLite migrator.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageTags>configuration;sqlite;encryption;aes-gcm;aspnetcore;dotnet;appsettings;configurite;secrets;hot-reload</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Configurite.Tests" />
+  </ItemGroup>
+
+  <!-- Per-TFM dependencies. Each .NET wave gets its matching Microsoft.Extensions.* line. -->
+  <!-- TFM başına bağımlılıklar. Her .NET dalgası kendi Microsoft.Extensions.* hattını alır. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

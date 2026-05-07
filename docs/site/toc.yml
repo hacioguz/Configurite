@@ -1,0 +1,10 @@
+- name: Home
+  href: index.md
+- name: English
+  href: en/
+  homepage: en/README.md
+- name: Türkçe
+  href: tr/
+  homepage: tr/README.md
+- name: API
+  href: api/

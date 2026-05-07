@@ -1,0 +1,71 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": ["src/Configurite/Configurite.csproj"],
+          "src": "../.."
+        }
+      ],
+      "dest": "api",
+      "includePrivateMembers": false,
+      "disableGitFeatures": false,
+      "disableDefaultFilter": false,
+      "noRestore": false,
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage",
+      "EnumSortOrder": "alphabetic",
+      "allowCompilationErrors": false,
+      "properties": {
+        "TargetFramework": "net10.0"
+      }
+    },
+    {
+      "src": [
+        {
+          "files": ["src/Configurite.AdminUI/Configurite.AdminUI.csproj"],
+          "src": "../.."
+        }
+      ],
+      "dest": "api",
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage",
+      "properties": {
+        "TargetFramework": "net10.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["api/**.yml", "api/index.md"]
+      },
+      {
+        "files": ["**.md", "**/toc.yml", "toc.yml"],
+        "exclude": ["_site/**", "obj/**", "api/index.md"]
+      }
+    ],
+    "resource": [
+      {
+        "files": ["images/**", "icon.png", "logo-*.png"]
+      }
+    ],
+    "output": "_site",
+    "globalMetadata": {
+      "_appName": "Configurite",
+      "_appTitle": "Configurite — Encrypted SQLite configuration provider",
+      "_appLogoPath": "icon.png",
+      "_appFaviconPath": "icon.png",
+      "_enableSearch": true,
+      "_disableContribution": false,
+      "_gitContribute": {
+        "repo": "https://github.com/hacioguz/configurite",
+        "branch": "main"
+      }
+    },
+    "template": ["default", "modern"],
+    "postProcessors": [],
+    "keepFileLink": false,
+    "disableGitFeatures": false
+  }
+}
